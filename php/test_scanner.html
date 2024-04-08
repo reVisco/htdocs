@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>QR Code Scanner</title>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/jsqr@1.0.0/dist/jsQR.js"></script>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      margin: 0;
+      align-items: center;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    header {
+      text-align: center;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    #camera-dropdown {
+      margin-bottom: 10px;
+    }
+
+    .video-container {
+      width: 70vw;
+      height: 75vh;
+      position: relative;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    #loading-overlay,
+    #success-message,
+    #error-message,
+    #already-scanned-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
+      padding: 10px;
+      border-radius: 5px;
+      width: 200px;
+      text-align: center;
+      font-weight: bold;
+      color: black;
+      font-size: 50px; /* You can adjust the font size as needed */
+      width: 500px; /* You can adjust the width as needed */
+    }
+
+    #loading-overlay {
+      background-color: yellow;
+    }
+
+    #success-message {
+      background-color: green;
+    }
+
+    #error-message {
+      background-color: red;
+    }
+
+    #already-scanned-message {
+      background-color: lightblue;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <img src="assets/astoria_logo.png" alt="Header Image" width="10%">
+  </header>
+  <select id="camera-dropdown"></select>
+  <div class="video-container">
+    <video id="preview" playsinline></video>
+    <div id="loading-overlay">
+      <div id="loading-message">Loading...Please remove your QR</div>
+    </div>
+    <div id="success-message">Scan successful!</div>
+    <div id="error-message">Invalid QR code. Not found in the database.</div>
+    <div id="already-scanned-message">Already Scanned</div>
+  </div>
+  <audio id="success-sound"
+    src="https://github.com/adminin123/Meal-QR-code/raw/main/success-1-6297%20revise.mp3"></audio>
+  <audio id="error-sound"
+    src="https://github.com/adminin123/Meal-QR-code/raw/main/buzzer-or-wrong-answer-20582%20revise.mp3"></audio>
+  <!-- Your HTML code remains unchanged -->
+
+<script>
+  let scanningEnabled = true;
+  let isQRCodePresent = false;
+  let video;
+  let lastScannedQRCode = null;
+  let scanInterval;
+
+  function startCamera(selectedCameraIndex) {
+    navigator.mediaDevices.getUserMedia({
+      video: { deviceId: { exact: cameras[selectedCameraIndex].deviceId } }
+    }).then(function (cameraStream) {
+      video = document.getElementById('preview');
+      video.srcObject = cameraStream;
+
+      video.addEventListener('play', function () {
+        scanInterval = setInterval(function () {
+          var canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          var context = canvas.getContext('2d');
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+          var code = jsQR(imageData.data, imageData.width, imageData.height);
+          if (code && !isQRCodePresent) {
+            if (scanningEnabled && code.data !== lastScannedQRCode) {
+              console.log("Scanned QR code content:", code.data);
+              scanningEnabled = false;
+              isQRCodePresent = true;
+              showLoadingOverlay();
+              google.script.run.withSuccessHandler(function (success, alreadyScanned) {
+                hideLoadingOverlay();
+                if (alreadyScanned) {
+                  displayMessage(false, true);
+                } else {
+                  displayMessage(success, false);
+                }
+                scanningEnabled = true;
+                lastScannedQRCode = code.data;
+                isQRCodePresent = false;
+              }).processQRCode(code.data);
+            } else {
+              displayMessage(false, true);
+            }
+          }
+        }, 1000 / 2);
+      });
+
+      video.addEventListener('loadedmetadata', function () {
+        video.play();
+      });
+
+    }).catch(handleError);
+  }
+
+  function stopCamera() {
+    var stream = video.srcObject;
+    var tracks = stream.getTracks();
+    tracks.forEach(track => track.stop());
+    clearInterval(scanInterval);
+  }
+
+  function populateCameraList(cameras) {
+    var cameraDropdown = document.getElementById('camera-dropdown');
+
+    cameras.forEach(function (camera, index) {
+      var option = document.createElement('option');
+      option.value = index;
+      option.text = camera.label;
+      cameraDropdown.add(option);
+    });
+
+    startCamera(0);
+
+    cameraDropdown.addEventListener('change', function () {
+      stopCamera();
+      var selectedCameraIndex = cameraDropdown.value;
+      startCamera(selectedCameraIndex);
+    });
+  }
+
+  navigator.mediaDevices.enumerateDevices().then(function (devices) {
+    cameras = devices.filter(function (device) {
+      return device.kind === 'videoinput';
+    });
+
+    var cameraDropdown = document.getElementById('camera-dropdown');
+
+    if (cameras.length > 0) {
+      populateCameraList(cameras);
+    } else {
+      console.error('No cameras found.');
+    }
+  }).catch(function (e) {
+    console.error(e);
+  });
+
+  function showLoadingOverlay() {
+    document.getElementById('loading-overlay').style.display = 'flex';
+  }
+
+  function hideLoadingOverlay() {
+    document.getElementById('loading-overlay').style.display = 'none';
+  }
+
+  function displayMessage(success, alreadyScanned) {
+    if (success) {
+      document.getElementById('success-message').style.display = 'block';
+      document.getElementById('success-sound').play();
+      setTimeout(function () {
+        document.getElementById('success-message').style.display = 'none';
+      }, 3000);
+    } else if (alreadyScanned) {
+      document.getElementById('already-scanned-message').style.display = 'block';
+      setTimeout(function () {
+        document.getElementById('already-scanned-message').style.display = 'none';
+      }, 3000);
+    } else {
+      document.getElementById('error-message').style.display = 'block';
+      document.getElementById('error-sound').play();
+      setTimeout(function () {
+        document.getElementById('error-message').style.display = 'none';
+      }, 3000);
+    }
+    scanningEnabled = true;
+  }
+
+  function handleError(error) {
+    console.error('Error accessing camera:', error);
+  }
+</script>
+
+
+</body>
+
+</html>

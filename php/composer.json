@@ -1,0 +1,22 @@
+{
+    "name": "astoria/inventory",
+    "description": "inventory_system",
+    "type": "library",
+    "require": {
+        "bacon/bacon-qr-code": "2.0.8",
+        "endroid/qr-code": "^5.0@dev",
+        "khanamiryan/qrcode-detector-decoder": "dev-master"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Astoria\\Inventory\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Ralph Visco"
+        }
+    ],
+    "minimum-stability": "dev"
+}
