@@ -1,4 +1,4 @@
-<?php
+ralph_visco@yahoo.com<?php
 // Include database connection details (replace with your actual credentials)
 require 'session_start_process.php';
 require 'db_connect.php';
@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       $qrCode = QrCode::create($qrCodeData)
         ->setEncoding(new Encoding('UTF-8'))
         ->setErrorCorrectionLevel(ErrorCorrectionLevel::Low)
-        ->setSize(100)
+        ->setSize(145)
         ->setMargin(10)
         ->setRoundBlockSizeMode(RoundBlockSizeMode::Margin)
         ->setForegroundColor(new Color(0, 0, 0))

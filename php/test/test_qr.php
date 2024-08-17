@@ -1,6 +1,6 @@
 <?php
 
-require 'vendor/autoload.php';
+require '../vendor/autoload.php';
 use Endroid\QrCode\Color\Color;
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
@@ -22,7 +22,7 @@ $qr_code_data = $item_id . "-" . $serial_number;
 $qrCode = QrCode::create($qr_code_data)
     ->setEncoding(new Encoding('UTF-8'))
     ->setErrorCorrectionLevel(ErrorCorrectionLevel::Low)
-    ->setSize(100)
+    ->setSize(145)
     ->setMargin(10)
     ->setRoundBlockSizeMode(RoundBlockSizeMode::Margin)
     ->setForegroundColor(new Color(0, 0, 0))
@@ -35,13 +35,13 @@ $qrCode = QrCode::create($qr_code_data)
 ;*/
 
 // Create generic label
-$label = Label::create('$serial_number')
-    ->setTextColor(new Color(255, 0, 0));
+$label = Label::create($item_id . "-". $item_name)
+    ->setTextColor(new Color(0, 0, 0));
 
 /*$result = $writer->write($qrCode, $logo, $label);*/
 
 /*$result = $writer->write($qrCode, $logo);*/
-$result = $writer->write($qrCode, $label);
+$result = $writer->write($qrCode, null ,$label);
 
 /*$result = $writer->write($qrCode);*/
 
