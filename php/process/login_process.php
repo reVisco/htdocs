@@ -31,11 +31,11 @@ if ($result->num_rows > 0) {
     header("Location: ../admin_dashboard.php");  // Redirect to dashboard
   } else {
     // Password mismatch
-    header("Location: ../../index.php?error=Invalid+credentials");
+    header("Location: ../../index.php?error=incorrect_password&message=" . urlencode("Incorrect password. Please try again."));
   }
 } else {
   // Username not found
-  header("Location: ../../index.php?error=Invalid+credentials");
+  header("Location: ../../index.php?error=invalid_username&message=" . urlencode("Username not found. Please check your username or register."));
 }
 
 $stmt->close();  // Close the prepared statement

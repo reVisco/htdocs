@@ -1,8 +1,8 @@
 <?php
-// Database connection details (replace with your actual credentials)
+// Database connection details
 $servername = "localhost";
-$username = "admin";
-$password = "aw!KS7g2J/dA]dRW";
+$username = "root";
+$password = "";
 $dbname = "ict_assets_inventory";
 
 // Create connection

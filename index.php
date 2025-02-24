@@ -6,17 +6,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
   <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-
   <link rel="stylesheet" href="css/style.css">
-
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 <body>
   <section class="ftco-section">
     <div class="container">
       <div class="row justify-content-center">
         <div class="col-md-12 col-lg-10">
+          <?php
+          if (isset($_GET['error']) && isset($_GET['message'])) {
+            $alertClass = ($_GET['error'] === 'incorrect_password' || $_GET['error'] === 'invalid_username') ? 'alert-danger' : 'alert-warning';
+            echo '<div class="alert ' . $alertClass . ' alert-dismissible fade show" role="alert">';
+            echo htmlspecialchars($_GET['message']);
+            echo '<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>';
+            echo '</div>';
+          }
+          ?>
           <div class="wrap d-md-flex">
             <div class="img" style="background-image: url(images/bg-1.png);">
             </div>
@@ -25,14 +34,9 @@
                 <div class="w-100">
                   <h3 class="mb-4">Sign In</h3>
                 </div>
-                <!-- <div class="w-100">
-                  <p class="social-media d-flex justify-content-end">
-                    <a href="#" class="social-icon d-flex align-items-center justify-content-center"><span class="fa fa-facebook"></span></a>
-                    <a href="#" class="social-icon d-flex align-items-center justify-content-center"><span class="fa fa-twitter"></span></a>
-                  </p>
-                </div> -->
               </div>
-              <form action="php/process/login_process.php" method="post" class="signin-form">  <div class="form-group mb-3">
+              <form action="php/process/login_process.php" method="post" class="signin-form">
+                <div class="form-group mb-3">
                   <label class="label" for="name">Username</label>
                   <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
                 </div>

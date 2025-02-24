@@ -1,65 +1,76 @@
 <?php
-/* Attempt MySQL server connection. Assuming you are running MySQL
-server with default setting (user 'root' with no password) */
 require 'process/db_connect.php';
- 
-if(isset($_REQUEST["term"])){
-    // Prepare a select statement
-    $sql = "SELECT * 
-    FROM items 
-    WHERE 
-    item_id LIKE ?
-    or item_name LIKE ?
-    or property LIKE ?
-    or order_batch_number LIKE ?
-    or model_number LIKE ?
-    or serial_number LIKE ?
-    or warranty_coverage LIKE ?
-    or brand LIKE ?
-    or item_type LIKE ?
-    or item_details LIKE ?
-    or status_description LIKE ?
-    or unit_price LIKE ?
-    or justification_of_purchase LIKE ?
-    or delivery_date LIKE ?
-    or supplier_name LIKE ?
-    or po_number LIKE ?
-    or po_date LIKE ?
-    or pr_number LIKE ?
-    or invoice_no LIKE ?
-    or delivery_receipt LIKE ?
-    or items_received_by LIKE ?
-    or remarks LIKE ?";
+
+if(isset($_GET['term'])){
+    $search = $_GET['term'];
+    
+    // Prepare the SQL query to search across multiple columns
+    $sql = "SELECT * FROM items WHERE 
+           item_name LIKE ? OR 
+           property LIKE ? OR 
+           serial_number LIKE ? OR 
+           brand LIKE ? OR 
+           item_type LIKE ? OR 
+           status_description LIKE ? OR 
+           supplier_name LIKE ? OR 
+           po_number LIKE ? OR 
+           pr_number LIKE ? OR 
+           invoice_no LIKE ? OR 
+           delivery_receipt LIKE ?
+           LIMIT 10";
     
     if($stmt = $conn->prepare($sql)){
-        // Bind variables to the prepared statement as parameters
-        $stmt->bind_param("ssssssssssssssssssssss", $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term, $param_term);
+        $search_term = "%{$search}%";
+        $stmt->bind_param("sssssssssss", 
+            $search_term, $search_term, $search_term, $search_term, 
+            $search_term, $search_term, $search_term, $search_term, 
+            $search_term, $search_term, $search_term);
         
-        // Set parameters
-        $param_term = $_REQUEST["term"] . '%';
-        
-        // Attempt to execute the prepared statement
         if($stmt->execute()){
             $result = $stmt->get_result();
             
-            // Check number of rows in the result set
             if($result->num_rows > 0){
-                // Fetch result rows as an associative array
-                while($row = $result->fetch_array(MYSQLI_ASSOC)){
-                    echo "<p>" . $row["item_id"] . "-" . $row["item_name"] . "</p>";
+                echo "<div class='table-responsive'>";
+                echo "<table class='table table-bordered table-striped table-hover'>";
+                echo "<thead class='thead-dark'>";
+                echo "<tr>";
+                echo "<th>Item ID</th>";
+                echo "<th>Item Name</th>";
+                echo "<th>Property</th>";
+                echo "<th>Serial Number</th>";
+                echo "<th>Brand</th>";
+                echo "<th>Item Type</th>";
+                echo "<th>Status</th>";
+                echo "</tr>";
+                echo "</thead>";
+                echo "<tbody>";
+                
+                while($row = $result->fetch_assoc()){
+                    echo "<tr>";
+                    echo "<td>" . htmlspecialchars($row['item_id']) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['item_name']) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['property']) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['serial_number']) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['brand']) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['item_type']) . "</td>";
+                    echo "<td>" . htmlspecialchars($row['status_description']) . "</td>";
+                    echo "</tr>";
                 }
+                
+                echo "</tbody>";
+                echo "</table>";
+                echo "</div>";
             } else{
                 echo "<p>No matches found</p>";
             }
         } else{
-            echo "ERROR: Could not able to execute $sql. " . mysqli_error($link);
+            echo "<p>ERROR: Could not execute query.</p>";
         }
+        $stmt->close();
+    } else{
+        echo "<p>ERROR: Could not prepare query.</p>";
     }
-     
-    // Close statement
-    $stmt->close();
+    
+    $conn->close();
 }
- 
-// Close connection
-$conn->close();
 ?>

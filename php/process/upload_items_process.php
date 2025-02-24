@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   $property = trim($_POST['property']);
   $orderBatchNumber = trim($_POST['order_batch_number']);
   $modelNumber = trim($_POST['model_number']);
-  $serialNumber = trim($_POST['serial_number']);
+  $serialNumbers = isset($_POST['serial_numbers']) ? $_POST['serial_numbers'] : array();
   $warrantyCoverage = (int) trim($_POST['warranty_coverage']);
   $brand = trim($_POST['brand']);
   $itemType = (int) trim($_POST['item_type']);
@@ -64,6 +64,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   $deliveryReceipt = trim($_POST['delivery_receipt']);
   $itemsReceivedBy = trim($_POST['items_received_by']);
   $remarks = trim($_POST['remarks']);
+
+  $successCount = 0;
+  $message = "";
 
   // Prepare the SQL statement to insert data
   $sql = "INSERT INTO items (
@@ -92,12 +95,59 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
   )";
 
-  // Prepare and execute the statement
+  // Prepare the statement
   if ($stmt = mysqli_prepare($conn, $sql)) {
-    mysqli_stmt_bind_param($stmt, "sssssisisdsssssssssss", $itemName, $property, $orderBatchNumber, $modelNumber, $serialNumber, $warrantyCoverage, $brand, $itemType, $itemDetails, $unitPrice, $statusDescription, $justificationOfPurchase, $deliveryDate, $supplierName, $poNumber, $poDate, $prNumber, $invoiceNo, $deliveryReceipt, $itemsReceivedBy, $remarks);
-    if (mysqli_stmt_execute($stmt)) {
-      // Success message
-      $message = "Item added successfully!";
+    mysqli_stmt_bind_param($stmt, "sssssisisdsssssssssss", $itemName, $property, $orderBatchNumber, $modelNumber, $currentSerialNumber, $warrantyCoverage, $brand, $itemType, $itemDetails, $unitPrice, $statusDescription, $justificationOfPurchase, $deliveryDate, $supplierName, $poNumber, $poDate, $prNumber, $invoiceNo, $deliveryReceipt, $itemsReceivedBy, $remarks);
+    
+    // Loop through each serial number
+    foreach ($serialNumbers as $currentSerialNumber) {
+      if (mysqli_stmt_execute($stmt)) {
+        $successCount++;
+        // Get the newly inserted item ID
+        $lastId = mysqli_stmt_insert_id($stmt);
+
+        $writer = new PngWriter();
+
+        $qrCodeData = $lastId . "-" . $itemName;
+        // Create QR code
+        $qrCode = QrCode::create($qrCodeData)
+          ->setEncoding(new Encoding('UTF-8'))
+          ->setErrorCorrectionLevel(ErrorCorrectionLevel::Low)
+          ->setSize(145)
+          ->setMargin(10)
+          ->setRoundBlockSizeMode(RoundBlockSizeMode::Margin)
+          ->setForegroundColor(new Color(0, 0, 0))
+          ->setBackgroundColor(new Color(255, 255, 255));
+
+        // Create generic label
+        $label = Label::create($qrCodeData)
+            ->setTextColor(new Color(0, 0, 0));
+
+        $result = $writer->write($qrCode, null, $label);
+
+        // Update the items table with QR code data
+        if (!empty($qrCodeData)) {
+          $updateSql = "UPDATE items SET qr_code_data = ? WHERE item_id = ?";
+          $updateStmt = mysqli_prepare($conn, $updateSql);
+          mysqli_stmt_bind_param($updateStmt, "si", $qrCodeData, $lastId);
+          $updateStmt->execute();
+        }
+
+        // Prepare inventory table insertion
+        $inventorySql = "INSERT INTO inventory (item_id, user_id, batch_order_id, date_added)
+                          VALUES (?, ?, ?, NOW())";
+        $inventoryStmt = mysqli_prepare($conn, $inventorySql);
+        mysqli_stmt_bind_param($inventoryStmt, "iii", $lastId, $userId, $orderBatchNumber);
+
+        // Execute inventory insertion
+        $inventoryStmt->execute();
+
+        // Save QR code to a file
+        $result->saveToFile(__DIR__.'/../qr_codes/'. $qrCodeData . '.png');
+      }
+    }
+    
+    $message = $successCount . " item(s) added successfully!";
 
       // Get the newly inserted item ID
       $lastId = mysqli_stmt_insert_id($stmt);

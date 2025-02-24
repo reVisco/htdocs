@@ -12,6 +12,7 @@
 	
 		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 		<link rel="stylesheet" href="../css/admin.css">
+<script src="js/upload_items.js"></script>
 </head>
 
 <body>
@@ -21,7 +22,7 @@
 		<div id="content" class="p-2 pt-5">
 			<div class="card">
 				<div class="card-header">
-					<h3>Upload Item</h3>
+					<h3>Upload Items</h3>
 					<nav aria-label="breadcrumb">
 		                <ol class="breadcrumb">
 		                    <li class="breadcrumb-item">
@@ -43,7 +44,7 @@
 	    						<div class="col mb-4 mr-4">
 	    							<div class="card">
 	    								<div class="card-header">
-	    									Column 1
+	    									Common Item Details
 	    								</div>
 	    								<div class="card-body">
 	    									<label for="item_name">Item Name:</label>
@@ -75,9 +76,6 @@
 									        <label for="model_number">Model Number:</label>
 									        <input type="text" id="model_number" name="model_number"><br><br>
 
-									        <label for="serial_number">Serial Number:</label>
-									        <input type="text" id="serial_number" name="serial_number"><br><br>
-
 									        <label for="warranty_coverage">Warranty Coverage (Months):</label>
 									        <input type="number" id="warranty_coverage" name="warranty_coverage"><br><br>
 
@@ -98,17 +96,30 @@
 	    								</div>
 	    							</div>
 	      						</div>
-
-		      					<div class="col mb-4">
-		      						<div class="card">
-		      							<div class="card-header">
-		      								Column 2
-		      							</div>
-		      							<div class="card-body">
-		      								<label for="justification_of_purchase">Justification of Purchase:</label>
+	      						<div class="col mb-4">
+	    							<div class="card">
+	    								<div class="card-header">
+	    									Serial Numbers
+	    								</div>
+	    								<div class="card-body">
+	    									<div id="serial_numbers_container">
+	    										<div class="serial-number-input">
+	    											<label for="serial_numbers[]">Serial Number 1:</label>
+	    											<input type="text" name="serial_numbers[]" required>
+	    										</div>
+	    									</div>
+	    									<button type="button" class="btn btn-secondary mt-3" onclick="addSerialNumberField()">Add Another Serial Number</button>
+	    								</div>
+	    							</div>
+	    							<div class="card mt-4">
+	    								<div class="card-header">
+	    									Purchase Details
+	    								</div>
+	    								<div class="card-body">
+	    									<label for="justification_of_purchase">Justification of Purchase:</label>
 									        <textarea id="justification_of_purchase" name="justification_of_purchase" rows="4" cols="50"></textarea><br><br>
 
-				      						<label for="delivery_date">Delivery Date (YYYY-MM-DD):</label>
+									        <label for="delivery_date">Delivery Date:</label>
 									        <input type="date" id="delivery_date" name="delivery_date"><br><br>
 
 									        <label for="supplier_name">Supplier Name:</label>
@@ -117,7 +128,7 @@
 									        <label for="po_number">PO Number:</label>
 									        <input type="text" id="po_number" name="po_number"><br><br>
 
-									        <label for="po_date">PO Date (YYYY-MM-DD):</label>
+									        <label for="po_date">PO Date:</label>
 									        <input type="date" id="po_date" name="po_date"><br><br>
 
 									        <label for="pr_number">PR Number:</label>
@@ -130,30 +141,23 @@
 									        <input type="text" id="delivery_receipt" name="delivery_receipt"><br><br>
 
 									        <label for="items_received_by">Items Received By:</label>
-													<select id="items_received_by" name="items_received_by" required>
-													  <option value="ALVIN">ALVIN</option>
-													  <option value="CLINTON">CLINTON</option>
-													</select>
-													<br><br>
+									        <input type="text" id="items_received_by" name="items_received_by"><br><br>
 
 									        <label for="remarks">Remarks:</label>
 									        <textarea id="remarks" name="remarks" rows="4" cols="50"></textarea><br><br>
-
-									        
-		      							</div>
-		      						</div>
-		      					</div>
+	    								</div>
+	    							</div>
+	    						</div>
 	    					</div>
 	    					<div class="row">
-	    						<button type="submit" class="btn btn-primary btn-block">Add Item</button>
+	    						<div class="col">
+	    							<input type="submit" value="Submit" class="btn btn-primary">
+	    						</div>
 	    					</div>
 	    				</div>
-
-			    	</form>
+					</form>
 				</div>
 			</div>
-			
-			
 		</div>
 	</div>
 
