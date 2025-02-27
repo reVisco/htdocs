@@ -25,17 +25,61 @@ $where_clause = '';
 $params = [];
 $types = '';
 
-// Add search condition if search term exists
+// Define searchable columns
+$searchable_columns = [
+    'item_id', 'item_name', 'property', 'order_batch_number', 'model_number',
+    'serial_number', 'warranty_coverage', 'brand', 'item_type', 'item_details',
+    'status_description', 'unit_price', 'justification_of_purchase', 'delivery_date',
+    'supplier_name', 'po_number', 'po_date', 'pr_number', 'invoice_no',
+    'delivery_receipt', 'items_received_by', 'remarks'
+];
+// Process search terms if search input exists
 if (!empty($search)) {
-    $where_clause = " WHERE (item_id LIKE ? OR item_name LIKE ? OR property LIKE ? OR order_batch_number LIKE ? OR model_number LIKE ? OR serial_number LIKE ? OR warranty_coverage LIKE ? OR brand LIKE ? OR item_type LIKE ? OR item_details LIKE ? OR status_description LIKE ? OR unit_price LIKE ? OR justification_of_purchase LIKE ? OR delivery_date LIKE ? OR supplier_name LIKE ? OR po_number LIKE ? OR po_date LIKE ? OR pr_number LIKE ? OR invoice_no LIKE ? OR delivery_receipt LIKE ? OR items_received_by LIKE ? OR remarks LIKE ?)";
-    $search_param = "%$search%";
-    $params = array_fill(0, 22, $search_param);
-    $types = str_repeat('s', 22);
-}
+    // Split search input by commas and trim whitespace
+    $search_terms = array_map('trim', explode(',', $search));
+    $conditions = [];
 
+    foreach ($search_terms as $term) {
+        // Check if the term specifies a column with a colon (e.g., property:aces)
+        if (strpos($term, ':') !== false) {
+            list($column, $value) = explode(':', $term, 2);
+            $column = trim($column);
+            $value = trim($value);
+
+            // Validate if the column is searchable
+            if (in_array($column, $searchable_columns)) {
+                $conditions[] = "$column LIKE ?";
+                $params[] = "%$value%";
+                $types .= 's';
+            } else {
+                // If column is invalid, treat as general search term
+                $subconditions = [];
+                foreach ($searchable_columns as $col) {
+                    $subconditions[] = "$col LIKE ?";
+                    $params[] = "%$value%";
+                    $types .= 's';
+                }
+                $conditions[] = "(" . implode(' OR ', $subconditions) . ")";
+            }
+        } else {
+            // No column specified, search across all columns (current behavior)
+            $subconditions = [];
+            foreach ($searchable_columns as $col) {
+                $subconditions[] = "$col LIKE ?";
+                $params[] = "%$term%";
+                $types .= 's';
+            }
+            $conditions[] = "(" . implode(' OR ', $subconditions) . ")";
+        }
+    }
+
+    // Construct WHERE clause if there are conditions
+    if (!empty($conditions)) {
+        $where_clause = " WHERE " . implode(' AND ', $conditions);
+    }
+}
 // Get total records for pagination
 $count_stmt = $conn->prepare($count_query . $where_clause);
-
 if ($count_stmt === false) {
     die('Error in prepare statement: ' . $conn->error);
 }
@@ -45,6 +89,29 @@ if (!empty($params)) {
 $count_stmt->execute();
 $total_records = $count_stmt->get_result()->fetch_assoc()['total'];
 $total_pages = ceil($total_records / $items_per_page);
+
+// Prepare and execute the main query with LIMIT
+$query = $base_query . $where_clause . " ORDER BY $sort_column $sort_order LIMIT ?, ?";
+$stmt = $conn->prepare($query);
+if ($stmt === false) {
+    die('Error in prepare statement: ' . $conn->error);
+}
+
+// Add pagination parameters
+$limit_params = [$offset, $items_per_page];
+$limit_types = 'ii';
+
+if (!empty($params)) {
+    $all_params = array_merge($params, $limit_params);
+    $all_types = $types . $limit_types;
+} else {
+    $all_params = $limit_params;
+    $all_types = $limit_types;
+}
+
+$stmt->bind_param($all_types, ...$all_params);
+$stmt->execute();
+$result = $stmt->get_result();
 ?>
 <html>
 <head>
@@ -112,6 +179,18 @@ $total_pages = ceil($total_records / $items_per_page);
             color: #2c3e50;
             margin-bottom: 0.5rem;
         }
+        .form-control{
+            border: 1px solid #cbd5e0;
+            padding: 0.625rem;
+            border-radius: 0.375rem;
+            background-color: #f8fafc;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus{
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background-color: #ffffff;
+        }
         .modal .form-control,
         .modal .form-select {
             border: 1px solid #cbd5e0;
@@ -153,7 +232,7 @@ $total_pages = ceil($total_records / $items_per_page);
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="admin_dashboard.php">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="admin_dashboard.php">Inventory</a></li>
+                        <li class="breadcrumb-item"><a href="inventory.php">Inventory</a></li>
                         <li class="breadcrumb-item active" aria-current="page">View Items</li>
                     </ol>
                 </nav>
@@ -195,6 +274,7 @@ $result = $stmt->get_result();
         <div class="row mb-3">
             <div class="col-md-4">
                 <div class="search-container">
+                    <label for="searchInput">Search</label>
                     <input type="text" id="searchInput" class="form-control" placeholder="Search items..." value="<?php echo htmlspecialchars($search); ?>">
                     <?php if (!empty($search)): ?>
                         <span class="clear-search" onclick="clearSearch()">&times;</span>
@@ -215,10 +295,13 @@ $result = $stmt->get_result();
                 </nav>
             </div>
             <div class="col-md-4 text-end">
+                <label for="itemsPerPage">Pagination:</label>
                 <select id="itemsPerPage" class="form-select d-inline-block w-auto" onchange="changeItemsPerPage(this.value)">
+                    <option value="5" <?php echo $items_per_page == 5 ? 'selected' : ''; ?>>5 items</option>
                     <option value="10" <?php echo $items_per_page == 10 ? 'selected' : ''; ?>>10 items</option>
                     <option value="25" <?php echo $items_per_page == 25 ? 'selected' : ''; ?>>25 items</option>
                     <option value="50" <?php echo $items_per_page == 50 ? 'selected' : ''; ?>>50 items</option>
+                    <option value="100" <?php echo $items_per_page == 100 ? 'selected' : ''; ?>>100 items</option>
                 </select>
             </div>
         </div>
@@ -226,10 +309,54 @@ $result = $stmt->get_result();
         <!-- Add Bootstrap Bundle JS for modal functionality -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <!-- Items Table -->
-        <div class="table-responsive">
+        <button id="downloadQRButton" class="btn btn-primary mb-3" onclick="handleDownloadQR()">Download Selected QR Code(s)</button>
+        <button id="deleteItemsButton" class="btn btn-danger mb-3 ms-2" onclick="handleDeleteItems()">Delete Selected Item(s)</button>
+        <div class="alert alert-warning alert-dismissible fade" role="alert" id="selectionAlert" style="display: none;">
+            Please select at least one item to download QR code(s).
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div class="alert alert-warning alert-dismissible fade" role="alert" id="deleteSelectionAlert" style="display: none;">
+            Please select at least one item to delete.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div>
+            *Hold shift to drag table
+        </div>
+
+        <!-- Success Alert for Delete -->
+        <div class="alert alert-success alert-dismissible fade" role="alert" id="deleteSuccessAlert" style="display: none;">
+            <span id="deleteSuccessMessage"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Deletion</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete these items? This cannot be reverted.</p>
+                        <p><strong>Items to be deleted:</strong></p>
+                        <div id="itemsToDelete"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive" id="tableContainer">
             <table class="table table-striped table-hover">
                 <thead>
                     <tr>
+                        <th>
+                            <input type="checkbox" id="selectAll" onclick="toggleAllCheckboxes()">
+                        </th>
                         <?php
                         $columns = [
                             'item_id' => 'ID',
@@ -281,6 +408,9 @@ $result = $stmt->get_result();
                     <?php while ($row = $result->fetch_assoc()): ?>
                         <tr>
                             <td>
+                                <input type="checkbox" class="item-checkbox" data-item-id="<?php echo htmlspecialchars($row['item_id']); ?>" data-item-name="<?php echo htmlspecialchars($row['item_name']); ?>">
+                            </td>
+                            <td>
                                 <?php echo htmlspecialchars($row['item_id']); ?>
                                 <button type="button" class="btn btn-sm btn-primary" onclick="editItem(<?php echo htmlspecialchars(json_encode($row)); ?>)">
                                     <i class="fa fa-edit"></i> Edit
@@ -327,72 +457,13 @@ $result = $stmt->get_result();
         </nav>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        let searchTimeout;
-        const searchDelay = 500; // Delay in milliseconds
-
-        // Function to update URL parameters
-        function updateUrlParams(params) {
-            const url = new URL(window.location.href);
-            Object.keys(params).forEach(key => {
-                if (params[key] !== null && params[key] !== '') {
-                    url.searchParams.set(key, params[key]);
-                } else {
-                    url.searchParams.delete(key);
-                }
-            });
-            history.pushState({}, '', url);
-            return url.search;
-        }
-
-        // Function to reload the page with current parameters
-        function reloadWithParams() {
-            location.reload();
-        }
-
-        // Search functionality
-        document.getElementById('searchInput').addEventListener('input', function(e) {
-            clearTimeout(searchTimeout);
-            const searchTerm = e.target.value;
-            
-            searchTimeout = setTimeout(() => {
-                updateUrlParams({ search: searchTerm, page: '1' });
-                reloadWithParams();
-            }, searchDelay);
-        });
-
-        // Clear search
-        function clearSearch() {
-            updateUrlParams({ search: null, page: '1' });
-            reloadWithParams();
-        }
-
-        // Sorting functionality
-        function sort(column, order) {
-            updateUrlParams({ sort: column, order: order });
-            reloadWithParams();
-        }
-
-        // Pagination functionality
-        function goToPage(page) {
-            updateUrlParams({ page: page });
-            reloadWithParams();
-        }
-
-        // Items per page functionality
-        function changeItemsPerPage(value) {
-            updateUrlParams({ items_per_page: value, page: '1' });
-            reloadWithParams();
-        }
-    </script>
     <!-- Edit Modal -->
     <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="editModalLabel">Edit Item</h5>
-                    <button type="button" class="fa fa-times" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="editForm">
@@ -544,6 +615,194 @@ $result = $stmt->get_result();
     </div>
 
     <script>
+    // Variables for dragging state
+    let isDragging = false;
+    let startX, startY, scrollLeft, scrollTop;
+
+    // Reference to the table container
+    const tableContainer = document.getElementById('tableContainer');
+
+    // Start dragging when Shift + mousedown
+    function startDragging(e) {
+        if (!e.shiftKey) return; // Only proceed if Shift is pressed
+        e.preventDefault(); // Prevent default behavior (e.g., text selection)
+        isDragging = true;
+        startX = e.pageX;
+        startY = e.pageY;
+        scrollLeft = tableContainer.scrollLeft;
+        scrollTop = tableContainer.scrollTop;
+        tableContainer.style.cursor = 'grabbing'; // Visual feedback
+    }
+
+    // Drag the table by adjusting scroll position
+    function dragTable(e) {
+        if (!isDragging) return;
+        e.preventDefault(); // Prevent text selection during drag
+        const x = e.pageX;
+        const y = e.pageY;
+        const walkX = (x - startX) * 1.5; // Adjust scroll speed
+        const walkY = (y - startY) * 1.5; // Adjust scroll speed
+        tableContainer.scrollLeft = scrollLeft - walkX;
+        tableContainer.scrollTop = scrollTop - walkY;
+    }
+
+    // Stop dragging when mouse is released
+    function stopDragging() {
+        isDragging = false;
+        tableContainer.style.cursor = 'default'; // Reset cursor
+    }
+
+    // Prevent text selection during dragging
+    document.addEventListener('selectstart', (e) => {
+        if (isDragging) {
+            e.preventDefault();
+        }
+    });
+
+    // Add event listeners to the container
+    tableContainer.addEventListener('mousedown', startDragging);
+    tableContainer.addEventListener('mousemove', dragTable);
+    tableContainer.addEventListener('mouseup', stopDragging);
+    tableContainer.addEventListener('mouseleave', stopDragging);
+    
+    function handleDownloadQR() {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked:not(#selectAll)');
+        if (checkboxes.length === 0) {
+            const alert = document.getElementById('selectionAlert');
+            alert.style.display = 'block';
+            alert.classList.add('show');
+            return;
+        }
+
+        // Proceed with download if items are selected
+        const itemIds = Array.from(checkboxes).map(checkbox => checkbox.dataset.itemId);
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'process/download_qr_codes.php';
+
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'item_ids';
+        input.value = JSON.stringify(itemIds);
+
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+    }
+    function handleDeleteItems() {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked:not(#selectAll)');
+        if (checkboxes.length === 0) {
+            const alert = document.getElementById('deleteSelectionAlert');
+            alert.style.display = 'block';
+            alert.classList.add('show');
+            return;
+        }
+
+        // Prepare items list for confirmation
+        const itemsList = Array.from(checkboxes).map(checkbox => {
+            const itemId = checkbox.dataset.itemId;
+            const itemName = checkbox.dataset.itemName;
+            return `${itemId} - ${itemName}`;
+        }).join('<br>');
+
+        document.getElementById('itemsToDelete').innerHTML = itemsList;
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+        deleteModal.show();
+    }
+
+    function confirmDelete() {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked:not(#selectAll)');
+        const itemIds = Array.from(checkboxes).map(checkbox => checkbox.dataset.itemId);
+
+        // Send delete request
+        fetch('process/delete_items_process.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ item_ids: itemIds })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal and show success message
+                bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
+                const successAlert = document.getElementById('deleteSuccessAlert');
+                const successMessage = document.getElementById('deleteSuccessMessage');
+                successMessage.textContent = `Successfully deleted ${itemIds.length} item(s)`;
+                successAlert.style.display = 'block';
+                successAlert.classList.add('show');
+                
+                // Refresh page after a short delay
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                alert('Error deleting items: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting items.');
+        });
+    }
+
+    let searchTimeout;
+    const searchDelay = 500; // Delay in milliseconds
+
+    // Function to update URL parameters
+    function updateUrlParams(params) {
+        const url = new URL(window.location.href);
+        Object.keys(params).forEach(key => {
+            if (params[key] !== null && params[key] !== '') {
+                url.searchParams.set(key, params[key]);
+            } else {
+                url.searchParams.delete(key);
+            }
+        });
+        history.pushState({}, '', url);
+        return url.search;
+    }
+
+    // Function to reload the page with current parameters
+    function reloadWithParams() {
+        location.reload();
+    }
+
+    // Search functionality
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+        clearTimeout(searchTimeout);
+        const searchTerm = e.target.value;
+        
+        searchTimeout = setTimeout(() => {
+            updateUrlParams({ search: searchTerm, page: '1' });
+            reloadWithParams();
+        }, searchDelay);
+    });
+
+    // Clear search
+    function clearSearch() {
+        updateUrlParams({ search: null, page: '1' });
+        reloadWithParams();
+    }
+
+    // Sorting functionality
+    function sort(column, order) {
+        updateUrlParams({ sort: column, order: order });
+        reloadWithParams();
+    }
+
+    // Pagination functionality
+    function goToPage(page) {
+        updateUrlParams({ page: page });
+        reloadWithParams();
+    }
+
+    // Items per page functionality
+    function changeItemsPerPage(value) {
+        updateUrlParams({ items_per_page: value, page: '1' });
+        reloadWithParams();
+    }
     function editItem(item) {
         // Populate form fields
         document.getElementById('edit_item_id').value = item.item_id;
@@ -595,6 +854,44 @@ $result = $stmt->get_result();
             alert('Error updating item');
         });
     }
+
+        // QR Code download functionality
+    function toggleAllCheckboxes() {
+        const checkboxes = document.querySelectorAll('.item-checkbox');
+        const selectAllCheckbox = document.getElementById('selectAll');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = selectAllCheckbox.checked;
+        });
+        updateDownloadButton();
+    }
+
+    function downloadSelectedQRCodes() {
+        const checkboxes = document.querySelectorAll('.item-checkbox:checked');
+        checkboxes.forEach(checkbox => {
+            const itemId = checkbox.dataset.itemId;
+            const itemName = checkbox.dataset.itemName;
+            const qrCodeUrl = `qr_codes/${itemId}-${itemName}.png`;
+            
+            // Create a temporary link element
+            const link = document.createElement('a');
+            link.href = qrCodeUrl;
+            link.download = `QR_Code_${itemId}_${itemName}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    }
+
+    // Add event listeners for checkboxes and download button
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkboxes = document.querySelectorAll('.item-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateDownloadButton);
+        });
+
+        const downloadButton = document.getElementById('downloadQRButton');
+        downloadButton.addEventListener('click', downloadSelectedQRCodes);
+    });
     </script>
 </body>
 </html>
