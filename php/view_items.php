@@ -295,7 +295,6 @@ $result = $stmt->get_result();
                 </nav>
             </div>
             <div class="col-md-4 text-end">
-                <label for="itemsPerPage">Pagination:</label>
                 <select id="itemsPerPage" class="form-select d-inline-block w-auto" onchange="changeItemsPerPage(this.value)">
                     <option value="5" <?php echo $items_per_page == 5 ? 'selected' : ''; ?>>5 items</option>
                     <option value="10" <?php echo $items_per_page == 10 ? 'selected' : ''; ?>>10 items</option>
@@ -318,9 +317,6 @@ $result = $stmt->get_result();
         <div class="alert alert-warning alert-dismissible fade" role="alert" id="deleteSelectionAlert" style="display: none;">
             Please select at least one item to delete.
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        <div>
-            *Hold shift to drag table
         </div>
 
         <!-- Success Alert for Delete -->
@@ -350,7 +346,8 @@ $result = $stmt->get_result();
             </div>
         </div>
 
-        <div class="table-responsive" id="tableContainer">
+        <div class="table-responsive" id="tableContainer" style="cursor: default; user-select: none;">
+            <div class="drag-tooltip" style="display: none; position: fixed; background: rgba(0,0,0,0.8); color: white; padding: 8px; border-radius: 4px; pointer-events: none;">Hold Shift + Drag to scroll horizontally</div>
             <table class="table table-striped table-hover">
                 <thead>
                     <tr>
@@ -615,56 +612,6 @@ $result = $stmt->get_result();
     </div>
 
     <script>
-    // Variables for dragging state
-    let isDragging = false;
-    let startX, startY, scrollLeft, scrollTop;
-
-    // Reference to the table container
-    const tableContainer = document.getElementById('tableContainer');
-
-    // Start dragging when Shift + mousedown
-    function startDragging(e) {
-        if (!e.shiftKey) return; // Only proceed if Shift is pressed
-        e.preventDefault(); // Prevent default behavior (e.g., text selection)
-        isDragging = true;
-        startX = e.pageX;
-        startY = e.pageY;
-        scrollLeft = tableContainer.scrollLeft;
-        scrollTop = tableContainer.scrollTop;
-        tableContainer.style.cursor = 'grabbing'; // Visual feedback
-    }
-
-    // Drag the table by adjusting scroll position
-    function dragTable(e) {
-        if (!isDragging) return;
-        e.preventDefault(); // Prevent text selection during drag
-        const x = e.pageX;
-        const y = e.pageY;
-        const walkX = (x - startX) * 1.5; // Adjust scroll speed
-        const walkY = (y - startY) * 1.5; // Adjust scroll speed
-        tableContainer.scrollLeft = scrollLeft - walkX;
-        tableContainer.scrollTop = scrollTop - walkY;
-    }
-
-    // Stop dragging when mouse is released
-    function stopDragging() {
-        isDragging = false;
-        tableContainer.style.cursor = 'default'; // Reset cursor
-    }
-
-    // Prevent text selection during dragging
-    document.addEventListener('selectstart', (e) => {
-        if (isDragging) {
-            e.preventDefault();
-        }
-    });
-
-    // Add event listeners to the container
-    tableContainer.addEventListener('mousedown', startDragging);
-    tableContainer.addEventListener('mousemove', dragTable);
-    tableContainer.addEventListener('mouseup', stopDragging);
-    tableContainer.addEventListener('mouseleave', stopDragging);
-    
     function handleDownloadQR() {
         const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked:not(#selectAll)');
         if (checkboxes.length === 0) {
