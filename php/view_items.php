@@ -618,6 +618,14 @@ $result = $stmt->get_result();
             const alert = document.getElementById('selectionAlert');
             alert.style.display = 'block';
             alert.classList.add('show');
+            
+            // Auto-hide alert after 3 seconds
+            setTimeout(() => {
+                alert.classList.remove('show');
+                setTimeout(() => {
+                    alert.style.display = 'none';
+                }, 150); // Wait for fade animation to complete
+            }, 3000);
             return;
         }
 
@@ -642,6 +650,14 @@ $result = $stmt->get_result();
             const alert = document.getElementById('deleteSelectionAlert');
             alert.style.display = 'block';
             alert.classList.add('show');
+
+            // Auto-hide alert after 3 seconds
+            setTimeout(() => {
+                alert.classList.remove('show');
+                setTimeout(() => {
+                    alert.style.display = 'none';
+                }, 150); // Wait for fade animation to complete
+            }, 3000);
             return;
         }
 
