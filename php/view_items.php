@@ -842,3 +842,75 @@ $result = $stmt->get_result();
     </script>
 </body>
 </html>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tableContainer = document.getElementById('tableContainer');
+    const dragTooltip = document.querySelector('.drag-tooltip');
+    let isShiftPressed = false;
+    let isDragging = false;
+    let startX;
+    let scrollLeft;
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Shift') {
+            isShiftPressed = true;
+            if (tableContainer.matches(':hover')) {
+                tableContainer.style.cursor = 'grab';
+                dragTooltip.style.display = 'block';
+            }
+        }
+    });
+
+    document.addEventListener('keyup', function(e) {
+        if (e.key === 'Shift') {
+            isShiftPressed = false;
+            tableContainer.style.cursor = 'default';
+            dragTooltip.style.display = 'none';
+        }
+    });
+
+    tableContainer.addEventListener('mouseenter', function() {
+        if (isShiftPressed) {
+            tableContainer.style.cursor = 'grab';
+            dragTooltip.style.display = 'block';
+        }
+    });
+
+    tableContainer.addEventListener('mouseleave', function() {
+        dragTooltip.style.display = 'none';
+    });
+
+    tableContainer.addEventListener('mousedown', function(e) {
+        if (isShiftPressed) {
+            isDragging = true;
+            tableContainer.style.cursor = 'grabbing';
+            startX = e.pageX - tableContainer.offsetLeft;
+            scrollLeft = tableContainer.scrollLeft;
+        }
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging || !isShiftPressed) return;
+
+        e.preventDefault();
+        const x = e.pageX - tableContainer.offsetLeft;
+        const walk = (x - startX) * 2;
+        tableContainer.scrollLeft = scrollLeft - walk;
+
+        // Update tooltip position
+        dragTooltip.style.left = (e.pageX + 10) + 'px';
+        dragTooltip.style.top = (e.pageY + 10) + 'px';
+    });
+
+    document.addEventListener('mouseup', function() {
+        isDragging = false;
+        if (isShiftPressed) {
+            tableContainer.style.cursor = 'grab';
+        } else {
+            tableContainer.style.cursor = 'default';
+        }
+    });
+});
+</script>
+</body>
+</html>
