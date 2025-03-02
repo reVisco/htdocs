@@ -274,7 +274,7 @@ $result = $stmt->get_result();
         <div class="row mb-3">
             <div class="col-md-4">
                 <div class="search-container">
-                    <label for="searchInput">Search</label>
+                    <label for="searchInput">Search:</label>
                     <input type="text" id="searchInput" class="form-control" placeholder="Search items..." value="<?php echo htmlspecialchars($search); ?>">
                     <?php if (!empty($search)): ?>
                         <span class="clear-search" onclick="clearSearch()">&times;</span>
@@ -295,6 +295,7 @@ $result = $stmt->get_result();
                 </nav>
             </div>
             <div class="col-md-4 text-end">
+                <label for="itemsPerPage">Pagination:</label>
                 <select id="itemsPerPage" class="form-select d-inline-block w-auto" onchange="changeItemsPerPage(this.value)">
                     <option value="5" <?php echo $items_per_page == 5 ? 'selected' : ''; ?>>5 items</option>
                     <option value="10" <?php echo $items_per_page == 10 ? 'selected' : ''; ?>>10 items</option>
@@ -310,13 +311,12 @@ $result = $stmt->get_result();
         <!-- Items Table -->
         <button id="downloadQRButton" class="btn btn-primary mb-3" onclick="handleDownloadQR()">Download Selected QR Code(s)</button>
         <button id="deleteItemsButton" class="btn btn-danger mb-3 ms-2" onclick="handleDeleteItems()">Delete Selected Item(s)</button>
+        <div>*Hold shift to drag table</div>
         <div class="alert alert-warning alert-dismissible fade" role="alert" id="selectionAlert" style="display: none;">
             Please select at least one item to download QR code(s).
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
         <div class="alert alert-warning alert-dismissible fade" role="alert" id="deleteSelectionAlert" style="display: none;">
             Please select at least one item to delete.
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
 
         <!-- Success Alert for Delete -->
