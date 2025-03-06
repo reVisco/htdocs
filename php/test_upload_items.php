@@ -61,7 +61,7 @@ require 'process/session_start_process.php'; // Assumes this sets $_SESSION['use
                     </nav>
                 </div>
                 <div class="card-body">
-                    <form action="process/upload_items_process.php" method="post">
+                    <form action="process/test_upload_items_process.php" method="post">
                         <div class="container-fluid">
                             <div class="row mb-4">
                                 <div class="col-md-4">

@@ -111,10 +111,148 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Insert into Brands (if brand exists)
         $brand_id = null;
         if ($brand) {
-            $stmt = $conn->prepare("INSERT INTO Brands (brand_name) VALUES (?) ON DUPLICATE KEY UPDATE brand_id=LAST_INSERT_ID(brand_id)");
+            // First check if brand already exists
+            $stmt = $conn->prepare("SELECT brand_id FROM Brands WHERE brand_name = ?");
             $stmt->bind_param("s", $brand);
             $stmt->execute();
-            $brand_id = $conn->insert_id;
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                // Brand already exists, use existing ID
+                $brand_id = $result->fetch_assoc()['brand_id'];
+            } else {
+                // Brand doesn't exist, insert new record
+                $stmt = $conn->prepare("INSERT INTO Brands (brand_name) VALUES (?)");
+                $stmt->bind_param("s", $brand);
+                $stmt->execute();
+                $brand_id = $conn->insert_id;
+            }
+        }
+
+        // Insert into Departments
+        $department_id = null;
+        if ($department) {
+            // First check if department already exists
+            $stmt = $conn->prepare("SELECT department_id FROM Departments WHERE department_name = ?");
+            $stmt->bind_param("s", $department);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                // Department already exists, use existing ID
+                $department_id = $result->fetch_assoc()['department_id'];
+            } else {
+                // Department doesn't exist, insert new record
+                $stmt = $conn->prepare("INSERT INTO Departments (department_name) VALUES (?)");
+                $stmt->bind_param("s", $department);
+                $stmt->execute();
+                $department_id = $conn->insert_id;
+            }
+        }
+
+        // Insert into Invoices
+        $invoice_id = null;
+        if ($invoiceNo) {
+            // First check if invoice already exists
+            $stmt = $conn->prepare("SELECT invoice_id FROM Invoices WHERE invoice_number = ?");
+            $stmt->bind_param("s", $invoiceNo);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                // Invoice already exists, use existing ID
+                $invoice_id = $result->fetch_assoc()['invoice_id'];
+            } else {
+                // Invoice doesn't exist, insert new record
+                $stmt = $conn->prepare("INSERT INTO Invoices (invoice_number) VALUES (?)");
+                $stmt->bind_param("s", $invoiceNo);
+                $stmt->execute();
+                $invoice_id = $conn->insert_id;
+            }
+        }
+
+        // Insert into Locations
+        $location_id = null;
+        if ($location) {
+            // First check if location already exists
+            $stmt = $conn->prepare("SELECT location_id FROM Locations WHERE location_name = ?");
+            $stmt->bind_param("s", $location);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                // Location already exists, use existing ID
+                $location_id = $result->fetch_assoc()['location_id'];
+            } else {
+                // Location doesn't exist, insert new record
+                $stmt = $conn->prepare("INSERT INTO Locations (location_name) VALUES (?)");
+                $stmt->bind_param("s", $location);
+                $stmt->execute();
+                $location_id = $conn->insert_id;
+            }
+        }
+
+        // Insert into Suppliers
+        $supplier_id = null;
+        if ($supplierName) {
+            // First check if supplier already exists
+            $stmt = $conn->prepare("SELECT supplier_id FROM Suppliers WHERE supplier_name = ?");
+            $stmt->bind_param("s", $supplierName);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                // Supplier already exists, use existing ID
+                $supplier_id = $result->fetch_assoc()['supplier_id'];
+            } else {
+                // Supplier doesn't exist, insert new record
+                $stmt = $conn->prepare("INSERT INTO Suppliers (supplier_name) VALUES (?)");
+                $stmt->bind_param("s", $supplierName);
+                $stmt->execute();
+                $supplier_id = $conn->insert_id;
+            }
+        }
+
+        // Insert into Purchase_Orders
+        $po_id = null;
+        if ($poNumber && $poDate) {
+            // First check if purchase order already exists
+            $stmt = $conn->prepare("SELECT po_id FROM Purchase_Orders WHERE po_number = ?");
+            $stmt->bind_param("s", $poNumber);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                // Purchase order already exists, use existing ID
+                $po_id = $result->fetch_assoc()['po_id'];
+            } else {
+                // Purchase order doesn't exist, insert new record
+                $stmt = $conn->prepare("INSERT INTO Purchase_Orders (po_number, po_date, supplier_id) VALUES (?, ?, ?)");
+                $stmt->bind_param("ssi", $poNumber, $poDate, $supplier_id);
+                $stmt->execute();
+                $po_id = $conn->insert_id;
+            }
+        }
+
+        // Insert into Purchase_Requests
+        $pr_id = null;
+        if ($prNumber) {
+            // First check if purchase request already exists
+            $stmt = $conn->prepare("SELECT pr_id FROM Purchase_Requests WHERE pr_number = ?");
+            $stmt->bind_param("s", $prNumber);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                // Purchase request already exists, use existing ID
+                $pr_id = $result->fetch_assoc()['pr_id'];
+            } else {
+                // Purchase request doesn't exist, insert new record
+                $stmt = $conn->prepare("INSERT INTO Purchase_Requests (pr_number, done_or_no_pr) VALUES (?, ?)");
+                $stmt->bind_param("ss", $prNumber, $doneOrNoPr);
+                $stmt->execute();
+                $pr_id = $conn->insert_id;
+            }
         }
 
         // Insert into Item_Types (if item_type exists)
@@ -165,27 +303,63 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Insert into Personnel (for items_received_by)
         $received_by_id = null;
         if ($itemsReceivedBy) {
-            $stmt = $conn->prepare("INSERT INTO Personnel (person_name) VALUES (?) ON DUPLICATE KEY UPDATE person_id=LAST_INSERT_ID(person_id)");
+            // First check if person already exists
+            $stmt = $conn->prepare("SELECT person_id FROM Personnel WHERE person_name = ?");
             $stmt->bind_param("s", $itemsReceivedBy);
             $stmt->execute();
-            $received_by_id = $conn->insert_id;
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                // Person already exists, use existing ID
+                $received_by_id = $result->fetch_assoc()['person_id'];
+            } else {
+                // Person doesn't exist, insert new record
+                $stmt = $conn->prepare("INSERT INTO Personnel (person_name) VALUES (?)");
+                $stmt->bind_param("s", $itemsReceivedBy);
+                $stmt->execute();
+                $received_by_id = $conn->insert_id;
+            }
         }
 
         // Insert into Personnel (for issued_by and issued_to)
         $issued_by_id = null;
         if ($issuedBy) {
-            $stmt = $conn->prepare("INSERT INTO Personnel (person_name) VALUES (?) ON DUPLICATE KEY UPDATE person_id=LAST_INSERT_ID(person_id)");
+            // Check if issued_by person already exists
+            $stmt = $conn->prepare("SELECT person_id FROM Personnel WHERE person_name = ?");
             $stmt->bind_param("s", $issuedBy);
             $stmt->execute();
-            $issued_by_id = $conn->insert_id;
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                // Person already exists, use existing ID
+                $issued_by_id = $result->fetch_assoc()['person_id'];
+            } else {
+                // Person doesn't exist, insert new record
+                $stmt = $conn->prepare("INSERT INTO Personnel (person_name) VALUES (?)");
+                $stmt->bind_param("s", $issuedBy);
+                $stmt->execute();
+                $issued_by_id = $conn->insert_id;
+            }
         }
 
         $issued_to_id = null;
         if ($issuedTo) {
-            $stmt = $conn->prepare("INSERT INTO Personnel (person_name) VALUES (?) ON DUPLICATE KEY UPDATE person_id=LAST_INSERT_ID(person_id)");
+            // Check if issued_to person already exists
+            $stmt = $conn->prepare("SELECT person_id FROM Personnel WHERE person_name = ?");
             $stmt->bind_param("s", $issuedTo);
             $stmt->execute();
-            $issued_to_id = $conn->insert_id;
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                // Person already exists, use existing ID
+                $issued_to_id = $result->fetch_assoc()['person_id'];
+            } else {
+                // Person doesn't exist, insert new record
+                $stmt = $conn->prepare("INSERT INTO Personnel (person_name) VALUES (?)");
+                $stmt->bind_param("s", $issuedTo);
+                $stmt->execute();
+                $issued_to_id = $conn->insert_id;
+            }
         }
 
         // Insert into Departments
@@ -206,9 +380,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $location_id = $conn->insert_id;
         }
 
-        // Create items based on qty
-        for ($i = 0; $i < $qty; $i++) {
-            // Use serial number if available, otherwise use "N/A"
+        // Create items based on serial numbers
+        $actualQty = max(count($serialNumbers), $qty);
+        for ($i = 0; $i < $actualQty; $i++) {
+            // Use serial number if available, otherwise use null
             $serialNumber = isset($serialNumbers[$i]) && !empty($serialNumbers[$i]) && $serialNumbers[$i] !== "N/A" ? $serialNumbers[$i] : null;
 
             // Insert into Items
