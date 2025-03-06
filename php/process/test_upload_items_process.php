@@ -221,7 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $qrCodeData = null;
             if ($generateQr === "yes") {
                 $writer = new PngWriter();
-                $qrCodeData = $item_id . "-" . $itemDetails;
+                $qrCodeData = $item_id;
                 $qrCode = QrCode::create($qrCodeData)
                     ->setEncoding(new Encoding('UTF-8'))
                     ->setErrorCorrectionLevel(ErrorCorrectionLevel::Low)
