@@ -347,7 +347,7 @@ require 'process/test_db_connect.php';
                 }).get();
                 if (selectedIds.length > 0) {
                     $.ajax({
-                        url: 'process/download_qr_codes.php',
+                        url: 'process/test_download_qr_codes_process.php',
                         type: 'POST',
                         data: { item_ids: selectedIds },
                         xhrFields: {
@@ -377,7 +377,7 @@ require 'process/test_db_connect.php';
                     }).get();
                     if (selectedIds.length > 0) {
                         $.ajax({
-                            url: 'process/delete_items.php',
+                            url: 'process/test_delete_items_process.php',
                             type: 'POST',
                             data: { item_ids: selectedIds },
                             success: function(response) {

@@ -13,34 +13,53 @@ use Endroid\QrCode\Writer\PngWriter;
 
 if (isset($_POST['item_ids']) && is_array($_POST['item_ids'])) {
     $itemIds = $_POST['item_ids'];
-    $zip = new ZipStream(outputName: 'qr_codes.zip');
-
-    $stmt = $conn->prepare("SELECT item_id, item_details FROM Items WHERE item_id IN (" . implode(',', array_fill(0, count($itemIds), '?')) . ")");
-    $stmt->bind_param(str_repeat('i', count($itemIds)), ...$itemIds);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    $writer = new PngWriter();
-    while ($row = $result->fetch_assoc()) {
-        $itemId = $row['item_id'];
-        $itemDetails = preg_replace('/[^A-Za-z0-9\-]/', '-', $row['item_details']);
-        $qrCodeData = $itemId . '-' . $itemDetails;
-        $qrCode = QrCode::create($qrCodeData)
-            ->setEncoding(new Encoding('UTF-8'))
-            ->setErrorCorrectionLevel(ErrorCorrectionLevel::Low)
-            ->setSize(145)
-            ->setMargin(10)
-            ->setRoundBlockSizeMode(RoundBlockSizeMode::Margin)
-            ->setForegroundColor(new Color(0, 0, 0))
-            ->setBackgroundColor(new Color(255, 255, 255));
-
-        $label = Label::create($qrCodeData)->setTextColor(new Color(0, 0, 0));
-        $result = $writer->write($qrCode, null, $label);
-        $zip->addFile("qr_code_{$itemId}.png", $result->getString());
+    
+    // Create a temporary directory for the zip file
+    $temp_dir = sys_get_temp_dir();
+    $zip_file = $temp_dir . '/qr_codes_' . time() . '.zip';
+    
+    $zip = new ZipArchive();
+    if ($zip->open($zip_file, ZipArchive::CREATE) !== TRUE) {
+        die('Could not create ZIP file');
     }
-
-    $zip->finish();
+    
+    // Get item details and add QR codes to the zip file
+    try {
+        $stmt = $conn->prepare("SELECT item_id, item_details FROM Items WHERE item_id IN (" . implode(',', array_fill(0, count($itemIds), '?')) . ")");
+        $stmt->bind_param(str_repeat('i', count($itemIds)), ...$itemIds);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        while ($row = $result->fetch_assoc()) {
+            $itemId = $row['item_id'];
+            $qr_code_path = "../qr_codes/{$itemId}.png";
+            
+            if (file_exists($qr_code_path)) {
+                $zip->addFile($qr_code_path, basename($qr_code_path));
+            }
+        }
+        
+        $zip->close();
+        
+        // Set headers for download
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="qr_codes.zip"');
+        header('Content-Length: ' . filesize($zip_file));
+        header('Pragma: no-cache');
+        
+        // Output the zip file
+        readfile($zip_file);
+        
+        // Clean up
+        unlink($zip_file);
+        
+    } catch (Exception $e) {
+        die('Error creating zip file: ' . $e->getMessage());
+    } finally {
+        if (isset($stmt)) {
+            $stmt->close();
+        }
+        $conn->close();
+    }
 }
-
-$conn->close();
 ?>
