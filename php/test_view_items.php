@@ -48,23 +48,6 @@ require 'process/test_db_connect.php';
                 </div>
                 <div class="card-body">
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <div class="input-group">
-                                <input type="text" id="searchInput" class="form-control" placeholder="Search items...">
-                                <div class="input-group-append">
-                                    <button class="btn btn-primary" id="searchButton">Search</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <select id="filterColumn" class="form-control">
-                                <option value="item_id">Item ID</option>
-                                <option value="item_details">Item Details</option>
-                                <option value="status">Status</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row mb-3">
                         <div class="col">
                             <button id="downloadQR" class="btn btn-success" disabled>Download QR Code(s)</button>
                             <button id="deleteItems" class="btn btn-danger" disabled>Delete Item(s)</button>
@@ -76,6 +59,7 @@ require 'process/test_db_connect.php';
                                 <th><input type="checkbox" id="selectAll"> Select All</th>
                                 <th>Actions</th>
                                 <th>Item ID</th>
+                                <th>Delivery Date</th>
                                 <th>Item Details</th>
                                 <th>Serial Number</th>
                                 <th>Brand</th>
@@ -85,7 +69,6 @@ require 'process/test_db_connect.php';
                                 <th>Status</th>
                                 <th>Unit Price</th>
                                 <th>Total Amount</th>
-                                <th>Delivery Date</th>
                                 <th>Received By</th>
                                 <th>Issued By</th>
                                 <th>Issued To</th>
@@ -159,7 +142,7 @@ require 'process/test_db_connect.php';
                                             </div>
                                             <div class="form-group mb-3">
                                                 <label for="editStatus" class="form-label">Status</label>
-                                                <input type="text" class="form-control" id="editStatus" required>
+                                                <input type="text" class="form-control" id="editStatus">
                                             </div>
                                             <div class="form-group mb-3">
                                                 <label for="editDepartmentName" class="form-label">Department</label>
@@ -308,6 +291,7 @@ require 'process/test_db_connect.php';
                         return `<button class="btn btn-info btn-sm editBtn" data-id="${data.item_id || ''}">Edit</button>`;
                     }},
                     { data: 'item_id' },
+                    { data: 'delivery_date' },
                     { data: 'item_details' },
                     { data: 'serial_number' },
                     { data: 'brand_name' },
@@ -317,7 +301,6 @@ require 'process/test_db_connect.php';
                     { data: 'status' },
                     { data: 'unit_price' },
                     { data: 'total_amount' },
-                    { data: 'delivery_date' },
                     { data: 'received_by_name' },
                     { data: 'issued_by_name' },
                     { data: 'issued_to_name' },
@@ -336,18 +319,11 @@ require 'process/test_db_connect.php';
 
             table.ajax.reload();
 
-            $('#searchButton').click(function() {
-                table.ajax.reload();
-            });
-
+            
             $('#searchInput').on('keypress', function(e) {
                 if (e.which === 13) {
                     table.ajax.reload();
                 }
-            });
-
-            $('#filterColumn').change(function() {
-                table.ajax.reload();
             });
 
             $('#selectAll').click(function() {

@@ -422,34 +422,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 $lastQrCodePath = $qrCodePath; // Store the last QR code path for display
             }
-        }
-
-        // Insert into Item_Purchases
-        if (!$totalAmount && $unitPrice) {
-            $totalAmount = $unitPrice * $qty; // Total amount for the entire batch
-        }
-        $stmt = $conn->prepare("INSERT INTO Item_Purchases (item_id, po_id, pr_id, invoice_id, qty, uom, unit_price, total_amount, justification_of_purchase, delivery_date, received_by, remarks, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("iiiisdssdssii", $item_id, $po_id, $pr_id, $invoice_id, $qty, $uom, $unitPrice, $totalAmount, $justificationOfPurchase, $deliveryDate, $received_by_id, $remarks, $userId);
-        $stmt->execute();
-
-        // Insert into Item_Issuances (if issuance details are provided)
-        if ($issued_by_id || $issued_to_id || $department_id || $dateIssued) {
-            $stmt = $conn->prepare("INSERT INTO Item_Issuances (item_id, issued_by, issued_to, department_id, date_issued) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("iiiis", $item_id, $issued_by_id, $issued_to_id, $department_id, $dateIssued);
-            $stmt->execute();
-        }
-
-        // Insert into Warranties (if warranty details are provided)
-        if ($warrantyCoverage && $deliveryDate) {
-            $warranty_ends = date('Y-m-d', strtotime($deliveryDate . " + $warrantyCoverage months"));
-            $stmt = $conn->prepare("INSERT INTO Warranties (item_id, warranty_ends, warranty_slip_no) VALUES (?, ?, ?)");
-            $stmt->bind_param("iss", $item_id, $warranty_ends, $warrantySlipNo);
-            $stmt->execute();
-        }
-
-        $successCount++;
         
+            // Insert into Item_Purchases
+            if (!$totalAmount && $unitPrice) {
+                $totalAmount = $unitPrice * $qty; // Total amount for the entire batch
+            }
+            $stmt = $conn->prepare("INSERT INTO Item_Purchases (item_id, po_id, pr_id, invoice_id, qty, uom, unit_price, total_amount, justification_of_purchase, delivery_date, received_by, remarks, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("iiiisdssdssii", $item_id, $po_id, $pr_id, $invoice_id, $qty, $uom, $unitPrice, $totalAmount, $justificationOfPurchase, $deliveryDate, $received_by_id, $remarks, $userId);
+            $stmt->execute();
 
+            // Insert into Item_Issuances (if issuance details are provided)
+            if ($issued_by_id || $issued_to_id || $department_id || $dateIssued) {
+                $stmt = $conn->prepare("INSERT INTO Item_Issuances (item_id, issued_by, issued_to, department_id, date_issued) VALUES (?, ?, ?, ?, ?)");
+                $stmt->bind_param("iiiis", $item_id, $issued_by_id, $issued_to_id, $department_id, $dateIssued);
+                $stmt->execute();
+            }
+
+            // Insert into Warranties (if warranty details are provided)
+            if ($warrantyCoverage && $deliveryDate) {
+                $warranty_ends = date('Y-m-d', strtotime($deliveryDate . " + $warrantyCoverage months"));
+                $stmt = $conn->prepare("INSERT INTO Warranties (item_id, warranty_ends, warranty_slip_no) VALUES (?, ?, ?)");
+                $stmt->bind_param("iss", $item_id, $warranty_ends, $warrantySlipNo);
+                $stmt->execute();
+            }
+
+            $successCount++;
+        }
         // Commit transaction
         $conn->commit();
         $message = $successCount . " item(s) added successfully!";
@@ -518,7 +516,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <?php else : ?>
                                 <p>No QR code generated for this item (non-physical item).</p>
                                 <div class="btn-group" role="group" aria-label="Action buttons">
-                                    <a href="../upload_items.php" class="btn btn-primary">Add Another Item</a>
+                                    <a href="../test_upload_items.php" class="btn btn-primary">Add Another Item</a>
                                     <a href="../inventory.php" class="btn btn-secondary">View Inventory</a>
                                 </div>
                             <?php endif; ?>
