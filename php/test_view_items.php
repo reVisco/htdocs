@@ -30,6 +30,45 @@ require 'process/test_db_connect.php';
         #inventoryTable th, #inventoryTable td {
             white-space: nowrap;
         }
+        /* Add these new styles */
+        .form-control {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            background-color: #fff;
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        
+        .form-control:hover {
+            background-color: #fff;
+            border-color: #ced4da;
+        }
+        
+        .card {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            background-color: #f1f4f6;
+            border-bottom: 2px solid #e3e6f0;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .form-group {
+            position: relative;
+        }
+        
+        textarea.form-control {
+            min-height: 100px;
+        }
     </style>
 </head>
 <body>
@@ -314,7 +353,8 @@ require 'process/test_db_connect.php';
                 ],
                 pageLength: 10,
                 lengthMenu: [10, 25, 50, 100],
-                scrollX: true // Enable horizontal scrolling for many columns
+                scrollX: true, // Enable horizontal scrolling for many columns
+                dom: '<"row"<"col-sm"f><"col-sm"l>>rtip'
             });
 
             table.ajax.reload();

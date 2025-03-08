@@ -226,19 +226,66 @@
   <script type="text/javascript">
     let scanner = new Instascan.Scanner({video: document.getElementById('preview')});
 
-    Instascan.Camera.getCameras().then(function(cameras){
-      if(cameras.length > 0){
-        scanner.start(cameras[0]);
-      } else{
-        alert('No cameras found');
+    // Function to handle camera permissions
+    async function requestCameraPermission() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getTracks().forEach(track => track.stop()); // Stop the stream after permission check
+        return true;
+      } catch (error) {
+        console.error('Camera permission error:', error);
+        return false;
       }
-    }).catch(function(e){
-      console.error(e);
-    });
+    }
 
-    scanner.addListener('scan',function(c){
-      document.getElementById('qr_data').value=c;
-      document.forms[0].submit()
+    // Function to show camera permission instructions
+    function showCameraInstructions() {
+      const preview = document.getElementById('preview');
+      const message = document.createElement('div');
+      message.style.padding = '20px';
+      message.style.textAlign = 'center';
+      message.innerHTML = `
+        <div class="alert alert-warning">
+          <h4>Camera Access Required</h4>
+          <p>Please enable camera access to use the QR scanner. Here's how:</p>
+          <ol style="text-align: left;">
+            <li>Click the camera icon in your browser's address bar</li>
+            <li>Select "Allow" for camera access</li>
+            <li>Refresh the page after enabling access</li>
+          </ol>
+          <button onclick="window.location.reload()" class="btn btn-primary mt-3">Refresh Page</button>
+        </div>
+      `;
+      preview.parentNode.insertBefore(message, preview);
+      preview.style.display = 'none';
+    }
+
+    // Initialize scanner with permission check
+    async function initializeScanner() {
+      const hasPermission = await requestCameraPermission();
+      
+      if (hasPermission) {
+        Instascan.Camera.getCameras().then(function(cameras) {
+          if (cameras.length > 0) {
+            scanner.start(cameras[0]);
+          } else {
+            alert('No cameras found on your device');
+          }
+        }).catch(function(e) {
+          console.error(e);
+          alert('Error accessing camera: ' + e.message);
+        });
+      } else {
+        showCameraInstructions();
+      }
+    }
+
+    // Start the initialization process
+    initializeScanner();
+
+    scanner.addListener('scan', function(c) {
+      document.getElementById('qr_data').value = c;
+      document.forms[0].submit();
     });
   </script>
 </body>
