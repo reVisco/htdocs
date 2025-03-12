@@ -15,60 +15,33 @@ require 'process/test_db_connect.php';
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="../css/admin.css">
     <style>
-        .modal-dialog {
-            max-width: 80%;
-        }
-        .dataTables_filter {
-            margin-bottom: 15px;
-        }
-        .action-buttons {
-            white-space: nowrap;
-        }
-        #inventoryTable {
-            font-size: 14px;
-        }
-        #inventoryTable th, #inventoryTable td {
-            white-space: nowrap;
-        }
-        /* Add these new styles */
+        .modal-dialog { max-width: 80%; }
+        .dataTables_filter { margin-bottom: 15px; }
+        .action-buttons { white-space: nowrap; }
+        #inventoryTable { font-size: 14px; }
+        #inventoryTable th, #inventoryTable td { white-space: nowrap; }
         .form-control {
             background-color: #f8f9fa;
             border: 1px solid #dee2e6;
             transition: all 0.3s ease;
         }
-        
         .form-control:focus {
             background-color: #fff;
             border-color: #80bdff;
             box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
         }
-        
         .form-control:hover {
             background-color: #fff;
             border-color: #ced4da;
         }
-        
-        .card {
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
+        .card { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .card-header {
             background-color: #f1f4f6;
             border-bottom: 2px solid #e3e6f0;
         }
-        
-        .form-label {
-            font-weight: 500;
-            color: #495057;
-        }
-        
-        .form-group {
-            position: relative;
-        }
-        
-        textarea.form-control {
-            min-height: 100px;
-        }
+        .form-label { font-weight: 500; color: #495057; }
+        .form-group { position: relative; }
+        textarea.form-control { min-height: 100px; }
     </style>
 </head>
 <body>
@@ -85,7 +58,16 @@ require 'process/test_db_connect.php';
                         </ol>
                     </nav>
                 </div>
+                
                 <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col">
+                            <input type="text" id="customSearch" class="form-control" placeholder="e.g., item_id:515, brand:Lenovo">
+                        </div>
+                        <div class="col">
+                            <button id="applyCustomSearch" class="btn btn-primary">Apply Filter</button>
+                        </div>
+                    </div>
                     <div class="row mb-3">
                         <div class="col">
                             <button id="downloadQR" class="btn btn-success" disabled>Download QR Code(s)</button>
@@ -118,6 +100,7 @@ require 'process/test_db_connect.php';
                                 <th>Supplier</th>
                                 <th>PR Number</th>
                                 <th>Invoice Number</th>
+                                <th>Done or No PR</th> <!-- Added Done or No PR column -->
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -217,6 +200,10 @@ require 'process/test_db_connect.php';
                                                 <input type="text" class="form-control" id="editPrNumber">
                                             </div>
                                             <div class="form-group mb-3">
+                                                <label for="editDoneOrNoPr" class="form-label">Done or No PR</label> <!-- Added field -->
+                                                <input type="text" class="form-control" id="editDoneOrNoPr">
+                                            </div>
+                                            <div class="form-group mb-3">
                                                 <label for="editInvoiceNumber" class="form-label">Invoice Number</label>
                                                 <input type="text" class="form-control" id="editInvoiceNumber">
                                             </div>
@@ -305,6 +292,86 @@ require 'process/test_db_connect.php';
     <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js"></script>
     <script>
+        // Define column mappings for user-friendly filter names
+        const columnMap = {
+            'brand': 'brand_name',
+            'type': 'item_type_name',
+            'item': 'item_details',
+            'property': 'property_name',
+            'location': 'location_name',
+            'department': 'department_name',
+            'supplier': 'supplier_name',
+            'po': 'po_number',
+            'pr': 'pr_number',
+            'invoice': 'invoice_number',
+            'done_or_no_pr': 'done_or_no_pr' // Added for custom search
+        };
+
+        // Define column indices based on DataTable columns array (0-based index)
+        const columnIndices = {
+            'item_id': 2,
+            'delivery_date': 3,
+            'item_details': 4,
+            'serial_number': 5,
+            'brand_name': 6,
+            'item_type_name': 7,
+            'property_name': 8,
+            'location_name': 9,
+            'status': 10,
+            'unit_price': 11,
+            'total_amount': 12,
+            'received_by_name': 13,
+            'issued_by_name': 14,
+            'issued_to_name': 15,
+            'department_name': 16,
+            'date_issued': 17,
+            'warranty_ends': 18,
+            'po_number': 19,
+            'supplier_name': 20,
+            'pr_number': 21,
+            'invoice_number': 22,
+            'done_or_no_pr': 23 // Added index for new column
+        };
+
+        // Columns requiring exact matches (e.g., numbers, dates)
+        const exactMatchColumns = ['item_id', 'unit_price', 'total_amount', 'delivery_date', 'date_issued', 'warranty_ends'];
+
+        // Function to apply custom search filters
+        function applyCustomSearch() {
+            const searchStr = $('#customSearch').val().trim();
+            const table = $('#inventoryTable').DataTable();
+
+            if (searchStr === '') {
+                table.search('').columns().search('').draw();
+                return;
+            }
+
+            const filters = searchStr.split(',').map(filter => filter.trim());
+            table.search('').columns().search('');
+
+            filters.forEach(filter => {
+                if (filter.includes(':')) {
+                    const [col, val] = filter.split(':', 2).map(s => s.trim());
+                    const mappedCol = columnMap[col] || col;
+                    if (columnIndices[mappedCol] !== undefined) {
+                        const columnIndex = columnIndices[mappedCol];
+                        if (exactMatchColumns.includes(mappedCol)) {
+                            table.column(columnIndex).search('^' + val + '$', true, false);
+                        } else {
+                            table.column(columnIndex).search(val);
+                        }
+                    }
+                } else {
+                    table.search(filter);
+                }
+            });
+
+            table.draw();
+        }
+
+        // Bind the function to the button click
+        $('#applyCustomSearch').on('click', applyCustomSearch);
+
         $(document).ready(function() {
             let table = $('#inventoryTable').DataTable({
                 processing: true,
@@ -316,11 +383,7 @@ require 'process/test_db_connect.php';
                         d.searchValue = $('#searchInput').val() || '';
                         d.filterColumn = $('#filterColumn').val() || 'item_id';
                         return d;
-                    },
-                    // error: function(xhr, error, thrown) {
-                    //     console.log('AJAX Error:', xhr.responseText, error, thrown);
-                    //     alert('Failed to load data. Check the console for details.');
-                    // }
+                    }
                 },
                 columns: [
                     { data: null, render: function(data, type, row) {
@@ -350,16 +413,16 @@ require 'process/test_db_connect.php';
                     { data: 'supplier_name' },
                     { data: 'pr_number' },
                     { data: 'invoice_number' },
+                    { data: 'done_or_no_pr' } // Added new column
                 ],
                 pageLength: 10,
                 lengthMenu: [10, 25, 50, 100],
-                scrollX: true, // Enable horizontal scrolling for many columns
+                scrollX: true,
                 dom: '<"row"<"col-sm"f><"col-sm"l>>rtip'
             });
 
             table.ajax.reload();
 
-            
             $('#searchInput').on('keypress', function(e) {
                 if (e.which === 13) {
                     table.ajax.reload();
@@ -390,9 +453,7 @@ require 'process/test_db_connect.php';
                         url: 'process/test_download_qr_codes_process.php',
                         type: 'POST',
                         data: { item_ids: selectedIds },
-                        xhrFields: {
-                            responseType: 'blob'
-                        },
+                        xhrFields: { responseType: 'blob' },
                         success: function(data, status, xhr) {
                             let blob = new Blob([data], { type: 'application/zip' });
                             let link = document.createElement('a');
@@ -435,10 +496,17 @@ require 'process/test_db_connect.php';
 
             $(document).on('click', '.editBtn', function() {
                 let itemId = $(this).data('id');
+                // Get current custom search filters
+                let customFilters = $('#customSearch').val().trim();
+                
                 $.ajax({
                     url: 'process/test_get_item_details_process.php',
                     type: 'POST',
-                    data: { item_id: itemId, action: 'get' },
+                    data: { 
+                        item_id: itemId, 
+                        action: 'get',
+                        custom_filters: customFilters // Pass the custom filters
+                    },
                     success: function(response) {
                         let item = JSON.parse(response);
                         if (item && item.item_id) {

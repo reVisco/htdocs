@@ -319,47 +319,11 @@ $result = $stmt->get_result();
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
 
-        <script>
-            // Function to show alert with auto-timeout
-            function showAlertWithTimeout(alertId) {
-                const alert = document.getElementById(alertId);
-                alert.style.display = 'block';
-                alert.classList.add('show');
-                
-                // Auto hide after 3 seconds
-                setTimeout(() => {
-                    alert.classList.remove('show');
-                    setTimeout(() => {
-                        alert.style.display = 'none';
-                    }, 150); // Wait for fade animation
-                }, 3000);
-            }
-
-            // Override the existing alert showing logic
-            function handleDownloadQR() {
-                const selectedItems = document.querySelectorAll('input[name="selected_items[]"]:checked');
-                if (selectedItems.length === 0) {
-                    showAlertWithTimeout('selectionAlert');
-                    return;
-                }
-                // ... rest of the download logic ...
-            }
-
-            function handleDeleteItems() {
-                const selectedItems = document.querySelectorAll('input[name="selected_items[]"]:checked');
-                if (selectedItems.length === 0) {
-                    showAlertWithTimeout('deleteSelectionAlert');
-                    return;
-                }
-                // ... rest of the delete logic ...
-            }
-        </script>
-
         <!-- Success Alert for Delete -->
         <div class="alert alert-success alert-dismissible fade" role="alert" id="deleteSuccessAlert" style="display: none;">
             <span id="deleteSuccessMessage"></span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+        </
 
         <!-- Delete Confirmation Modal -->
         <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
@@ -648,7 +612,26 @@ $result = $stmt->get_result();
     </div>
 
     <script>
+    // Function to show alert with auto-timeout
+    function showAlertWithTimeout(alertId) {
+        const alert = document.getElementById(alertId);
+        alert.style.display = 'block';
+        alert.classList.add('show');
+        
+        // Auto hide after 3 seconds
+        setTimeout(() => {
+            alert.classList.remove('show');
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 150); // Wait for fade animation
+        }, 3000);
+    }
     function handleDownloadQR() {
+        const selectedItems = document.querySelectorAll('input[name="selected_items[]"]:checked');
+            if (selectedItems.length === 0) {
+                showAlertWithTimeout('selectionAlert');
+                return;
+            }
         const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked:not(#selectAll)');
         if (checkboxes.length === 0) {
             const alert = document.getElementById('selectionAlert');
@@ -673,6 +656,11 @@ $result = $stmt->get_result();
         form.submit();
     }
     function handleDeleteItems() {
+        const selectedItems = document.querySelectorAll('input[name="selected_items[]"]:checked');
+            if (selectedItems.length === 0) {
+                showAlertWithTimeout('deleteSelectionAlert');
+                return;
+            }
         const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked:not(#selectAll)');
         if (checkboxes.length === 0) {
             const alert = document.getElementById('deleteSelectionAlert');
