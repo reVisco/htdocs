@@ -1,6 +1,6 @@
 <?php
 require 'process/session_start_process.php';
-  require 'process/db_connect.php';
+  require 'process/test_db_connect.php';
 ?>
 
 <!DOCTYPE html>
@@ -19,7 +19,7 @@ require 'process/session_start_process.php';
 </head>
 <body>
 	<div class="wrapper d-flex align-items-stretch">
-	    <?php include 'admin_nav.php';?>
+	    <?php include 'test_admin_nav.php';?>
 	    <div id="content" class="p-2 pt-5">
 	    	<div class="card">
 	    		<div class="card-header">
@@ -62,7 +62,30 @@ require 'process/session_start_process.php';
 											$qrCode = $_POST["qr_data"];
 											
 											// Prepare the statement
-											$stmt = $conn->prepare("SELECT * FROM items WHERE qr_code_data = ?");
+											$stmt = $conn->prepare("SELECT i.item_id, i.item_details, i.serial_number, i.status, i.qr_code_data,
+                                                b.brand_name, it.item_type_name, p.property_name, l.location_name,
+                                                ip.unit_price, ip.total_amount, ip.delivery_date, ip.remarks, per.person_name AS received_by_name,
+                                                iss.issued_by, iss.issued_to, iss.date_issued, d.department_name,
+                                                per_issued_by.person_name AS issued_by_name, per_issued_to.person_name AS issued_to_name,
+                                                w.warranty_ends, w.warranty_slip_no, po.po_number, po.po_date, s.supplier_name,
+                                                pr.pr_number, pr.done_or_no_pr, inv.invoice_number
+                                                FROM Items i
+                                                LEFT JOIN Brands b ON i.brand_id = b.brand_id
+                                                LEFT JOIN Item_Types it ON i.item_type_id = it.item_type_id
+                                                LEFT JOIN Properties p ON i.property_id = p.property_id
+                                                LEFT JOIN Locations l ON i.location_id = l.location_id
+                                                LEFT JOIN Item_Purchases ip ON i.item_id = ip.item_id
+                                                LEFT JOIN Personnel per ON ip.received_by = per.person_id
+                                                LEFT JOIN Item_Issuances iss ON i.item_id = iss.item_id
+                                                LEFT JOIN Personnel per_issued_by ON iss.issued_by = per_issued_by.person_id
+                                                LEFT JOIN Personnel per_issued_to ON iss.issued_to = per_issued_to.person_id
+                                                LEFT JOIN Departments d ON iss.department_id = d.department_id
+                                                LEFT JOIN Warranties w ON i.item_id = w.item_id
+                                                LEFT JOIN Purchase_Orders po ON ip.po_id = po.po_id
+                                                LEFT JOIN Suppliers s ON po.supplier_id = s.supplier_id
+                                                LEFT JOIN Purchase_Requests pr ON ip.pr_id = pr.pr_id
+                                                LEFT JOIN Invoices inv ON ip.invoice_id = inv.invoice_id
+                                                WHERE i.qr_code_data = ?");
 											$stmt->bind_param("s", $qrCode); // Bind the parameter
 
 											// Execute the statement
@@ -88,17 +111,17 @@ require 'process/session_start_process.php';
 												while($row = $result->fetch_assoc()){
 												// Add edit button with the correct item ID
 												?>
-												<a href="edit_item.php?id=<?=htmlspecialchars($row["item_id"]) ?>">
+												<!-- <a href="edit_item.php?id=<?=htmlspecialchars($row["item_id"]) ?>">
 													<button type="button" class="form-control btn btn-primary rounded px-3 mb-3">
 														Edit Item #<?=htmlspecialchars($row["item_id"]) ?>
 													</button>
-												</a>
+												</a> -->
 												<?php
 													echo "<td>" . htmlspecialchars($row["item_id"]) . "</td>";
-													echo "<td>" . htmlspecialchars($row["item_name"]) . "</td>";
-													echo "<td>" . htmlspecialchars($row["property"]) . "</td>";
+													echo "<td>" . htmlspecialchars($row["item_details"]) . "</td>";
+													echo "<td>" . htmlspecialchars($row["property_name"]) . "</td>";
 													echo "<td>" . htmlspecialchars($row["serial_number"]) . "</td>";
-													echo "<td>" . htmlspecialchars($row["warranty_coverage"]) . "month/s</td>";
+													echo "<td>" . htmlspecialchars($row["warranty_ends"]) . "</td>";
 												?>
 													
 							        	</tr>
@@ -121,10 +144,10 @@ require 'process/session_start_process.php';
 						    			<tbody>
 						    				<tr>
 						    					<?php
-													echo "<td>" . htmlspecialchars($row["brand"]) . "</td>";
-													echo "<td>" . htmlspecialchars($row["item_type"]) . "</td>";
+													echo "<td>" . htmlspecialchars($row["brand_name"]) . "</td>";
+													echo "<td>" . htmlspecialchars($row["item_type_name"]) . "</td>";
 													echo "<td>" . htmlspecialchars($row["item_details"]) . "</td>";
-													echo "<td>" . htmlspecialchars($row["status_description"]) . "</td>";
+													echo "<td>" . htmlspecialchars($row["status"]) . "</td>";
 													echo "<td>" . htmlspecialchars($row["unit_price"]) . "</td>";
 												?>
 						    				</tr>
@@ -141,13 +164,12 @@ require 'process/session_start_process.php';
 						    					<td>Delivery Date</td>
 						    					<td>Supplier Name</td>
 						    					<td>PO Number</td>
-						    					<td>PO Date</td>
 						    				</tr>
 						    			</thead>
 						    			<tbody>
 						    				<tr>
 						    					<?php
-													echo "<td>" . htmlspecialchars($row["justification_of_purchase"]) . "</td>";
+													// echo "<td>" . htmlspecialchars($row["justification_of_purchase"]) . "</td>";
 													echo "<td>" . htmlspecialchars($row["delivery_date"]) . "</td>";
 													echo "<td>" . htmlspecialchars($row["supplier_name"]) . "</td>";
 													echo "<td>" . htmlspecialchars($row["po_number"]) . "</td>";
@@ -167,16 +189,14 @@ require 'process/session_start_process.php';
 						    					<td>Invoice Number</td>
 						    					<td>Delivery Receipt</td>
 						    					<td>Items Received By</td>
-						    					<td>Remarks</td>
 						    				</tr>
 						    			</thead>
 						    			<tbody>
 						    				<tr>
 						    					<?php
 						    					echo "<td>" . htmlspecialchars($row["pr_number"]) . "</td>";
-													echo "<td>" . htmlspecialchars($row["invoice_no"]) . "</td>";
-									      	echo "<td>" . htmlspecialchars($row["delivery_receipt"]) . "</td>";
-									      	echo "<td>" . htmlspecialchars($row["items_received_by"]) . "</td>";
+													echo "<td>" . htmlspecialchars($row["invoice_number"]) . "</td>";
+									      	echo "<td>" . htmlspecialchars($row["received_by_name"]) . "</td>";
 									      	echo "<td>" . htmlspecialchars($row["remarks"]) . "</td>";
 									      	?>
 						    				</tr>
